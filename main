@@ -1,0 +1,377 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <windows.h>   ///消息窗口处理的头文件,此源码只使用了其中的Sleep函数和清屏函数
+#include <string.h>    ///字符串处理的头文件
+#define maxn 500
+
+typedef struct Class {
+    int id;             //id
+    int kind;           //收入\支出
+    char person[maxn];  //经手人
+    char result[maxn];  //原因
+    int amount;         //数额
+    char tips[maxn];    //备注
+} Class;
+void Print(Class s) {       ///对内容进行输出
+    printf("%5d%20d%20s%20s%20d%20s\n",s.id,s.kind,s.person,s.result,s.amount,s.tips);
+};
+void Init();
+void Watch();           ///浏览
+void Add();             ///添加
+void Find();            ///查找
+void Change();          ///修改
+void Find1(int,Class*,int); //查找id
+void Find2(int,Class*,int); //查找收入\输出,下面函数同理
+void Find3(int,Class*,char*);
+void Find4(int,Class*,char*);
+void Find5(int,Class*,int);
+void Input();               ///输入
+int cmp1(const void*,const void*);
+int cmp2(const void*,const void*);
+int cmp3(const void*,const void*);
+int cmp4(const void*,const void*);
+int cmp5(const void*,const void*);
+int cmp6(const void*,const void*);
+
+
+int main() {
+    Input();
+    return 0;
+}
+void Init(){
+    printf("请注意,该操作将会清空收支信息!\n");
+    Sleep(1000);
+    printf("1.执行\n2.返回主菜单\n");
+    int flag;
+    scanf("%d",&flag);
+    if(flag==1){
+        FILE *fin = fopen("income.txt","wb");    ///用wb方式打开又关闭文件可生成此文件///
+        FILE *fout = fopen("expenditure.txt","wb");
+        fclose(fin);
+        fclose(fout);
+        printf("重置成功!\n");
+        Sleep(1000);
+        return;
+    }
+    else if(flag==2)
+        return;
+    else
+        printf("输入有误,默认返回主菜单\n");
+    Sleep(1000);
+    return;
+}
+void Change() {
+    FILE *fin = fopen("income.txt","rb");
+    FILE *fout = fopen("expenditure.txt","rb");
+    FILE *f;
+    Class s[maxn];
+    int i,j;
+    for(i=0; fread(&s[i],sizeof(Class),1,fin); i++);
+    for(j=0; fread(&s[i],sizeof(Class),1,fout); j++);
+    fclose(fin);
+    fclose(fout);
+    i += j;
+    int id;
+    int flag = 0;
+    printf("请输入ID:\n");
+    scanf("%d",&id);
+    for(j=0; j<i; j++)
+        if(s[j].id == id) {
+            flag = 1;
+            break;
+        }
+    printf(flag?"请按照经办人 收入(0)/支出(1) 原因 金额 备注的格式写入信息,写入后此ID所对应的信息为此时输入的内容\n":"该ID不存在\n");
+    Sleep(1000);
+    if(!flag)
+        return;
+    scanf("%s%d%s%d%s",s[j].person,&s[j].kind,s[j].result,&s[j].amount,s[j].result);
+    fin = fopen("income.txt","wb");
+    fout = fopen("expenditure.txt","wb");
+    fclose(fin);
+    fclose(fout);
+    for(j=0; j<i; j++) {
+        if(s[j].kind == 1) {
+            f = fopen("expenditure.txt","ab+");
+        } else
+            f = fopen("income.txt","ab+");
+        fwrite(&s[j],sizeof(Class),1,f);
+        fclose(f);
+    }
+    printf("修改成功,1S后返回上一菜单\n");
+    Sleep(1000);
+}
+
+void Watch() {
+    system("cls");
+    FILE *fin = fopen("income.txt","rb");
+    FILE *fout = fopen("expenditure.txt","rb");///收入和支出的文件指针
+    Class s[maxn];
+    int i,j;
+    for(i=0; fread(&s[i],sizeof(Class),1,fin); i++)///无限读取,直到文件读完为止,fread当文件已经读完或者读到EOF的时候返回0,这个式子才不成立,循环跳出
+        s[i].kind = 0;
+    for(j=0; fread(&s[i],sizeof(Class),1,fout); j++)
+        s[i].kind = 1;
+    fclose(fin);
+    fclose(fout);
+    i += j;               ///此时i为收入和支出的总次数
+next:
+    system("cls");
+    printf("请输入浏览方式:\n");
+    printf("1.按照ID排序\n");
+    printf("2.按照种类排序\n");
+    printf("3.按照经办人排序\n");
+    printf("4.按照原因排序\n");
+    printf("5.按照金额排序\n");
+    printf("6.按照备注排序\n");
+    int n;  ///输入排序方式
+    scanf("%d",&n);
+    switch(n) {
+    case 1:
+        qsort(s,i,sizeof(s[0]),cmp1);///qsort为c语言内置快速排序函数,需要与比较函数cmp一同使用,位于头文件stdlib.h中,这里统一为从小到大排序
+        ///cmp的具体写法有好几种,可以百度qsort cmp写法
+        ///能实现对数组,数字,字符,结构体等多种数据类型排序
+        break;
+    case 2:
+        qsort(s,i,sizeof(s[0]),cmp2);
+        break;
+    case 3:
+        qsort(s,i,sizeof(s[0]),cmp3);
+        break;
+    case 4:
+        qsort(s,i,sizeof(s[0]),cmp4);
+        break;
+    case 5:
+        qsort(s,i,sizeof(s[0]),cmp5);
+        break;
+    case 6:
+        qsort(s,i,sizeof(s[0]),cmp6);
+        break;
+    default:
+        printf("输入错误,按照默认排序输出\n");
+    }
+    int balance = 0;///余额
+
+    for(j=0; j<i; j++) {
+        Print(s[j]);
+        if(s[j].kind)
+            balance -= s[j].amount;             ///计算余额
+        else
+            balance += s[j].amount;
+    }
+    printf("余额为:%5d\n",balance);
+    int juge;       ///下一步操作
+next1:
+    printf("返回主菜单请输入0\n");
+    printf("返回上一菜单请输入1\n");
+    scanf("%d",&juge);
+    if(juge==1)             //判断是不是输入错误
+        goto next;
+    else if (juge != 0) {
+        printf("输入错误,请重新输入\n");
+        goto next1;
+    }
+    return;
+}
+
+void Add() {
+    Class s;
+    int flag;///判断要写入的数据种类
+    FILE *f;
+    while(1) {
+        system("cls");
+        printf("请输入要输入的数据种类:\n0.收入     1.支出    2.停止输入\n");
+        scanf("%d",&flag);
+        if(flag == 1) {
+            f = fopen("expenditure.txt","ab+");
+            s.kind = 1;
+        } else if(flag == 0) {
+            f = fopen("income.txt","ab+");
+            s.kind = 0;
+        } else {
+            if(flag!=2)
+                printf("输入错误请重新输入\n"),Sleep(1000);
+            else
+                break;
+            continue;
+        }
+        fseek(f, 0, SEEK_END);          ///将文件指针移到文件末尾,方便追加输入
+        if(f == NULL)
+            printf("打开失败\n");
+        else {
+            printf("请按照班费收支编号(请注意保证编号唯一) 经办人 原因 金额 备注的格式写入");
+            printf("\n中间用空格隔开,如果没有备注请在备注栏写无,其他栏同理\n");
+            scanf("%d%s%s%d%s",&s.id,s.person,s.result,&s.amount,s.tips);
+            if(fwrite(&s,sizeof(Class),1,f)!=1)///将一个结构体以二进制写入文件
+                printf("保存失败");
+            else
+                printf("录入成功");
+            Sleep(1000);
+        }
+        fclose(f);
+    }
+}
+
+void Input() {
+revert:
+    system("cls");          ///清屏函数
+    printf("*************班费收支系统*************\n");
+    printf("请按快捷键进行以下操作:\n");
+    printf("1 添加班费收支信息\n");
+    printf("2 浏览所有班费收支信息\n");
+    printf("3 按照不同字段查询班费收支信息\n");
+    printf("4 修改班费收支信息\n");
+    printf("5 退出系统\n");
+    printf("6 重置系统\n");
+    int input;
+    scanf("%d",&input);
+    switch(input) {
+    case 1:
+        Add();
+        break;
+    case 2:
+        Watch();
+        break;
+    case 3:
+        Find();
+        break;
+    case 4:
+        Change();
+        break;
+    case 5:
+        return;
+    case 6:
+        Init();
+        break;
+    default:
+        printf("输入错误,请重新输入\n");
+        Sleep(1000);            ///消息框延迟1000ms显示
+    }
+    goto revert;
+}
+int cmp1(const void *a,const void *b) {
+    Class *c = (Class*)a;
+    Class *d = (Class*)b;
+    return c->id-d->id;
+}
+int cmp2(const void *a,const void *b) {
+    Class *c = (Class*)a;
+    Class *d = (Class*)b;
+    return c->kind-d->kind;
+}
+int cmp3(const void *a,const void *b) {
+    Class *c = (Class*)a;
+    Class *d = (Class*)b;
+    return strcmp(c->person,d->person);
+}
+int cmp4(const void *a,const void *b) {
+    Class *c = (Class*)a;
+    Class *d = (Class*)b;
+    return c->result-d->result;
+}
+int cmp5(const void *a,const void *b) {
+    Class *c = (Class*)a;
+    Class *d = (Class*)b;
+    return c->amount-d->amount;
+}
+int cmp6(const void *a,const void *b) {
+    Class *c = (Class*)a;
+    Class *d = (Class*)b;
+    return strcmp(c->tips,d->tips);
+}
+void Find() {
+    FILE *fin = fopen("income.txt","rb");
+    FILE *fout = fopen("expenditure.txt","rb");///收入和支出的文件指针
+    Class s[maxn];
+    int i,j;
+    for(i=0; fread(&s[i],sizeof(Class),1,fin); i++)
+        s[i].kind = 0;
+    for(j=0; fread(&s[i],sizeof(Class),1,fout); j++)
+        s[i].kind = 1;
+    fclose(fin);
+    fclose(fout);
+    i += j;               ///此时i为收入和支出的总次数
+    int n;///输入的信息
+    char Buf[maxn];///查询的内容
+    int buf;///查询的内容
+    printf("请输入要查找的类别:\n");
+    printf("1.编号\n");
+    printf("2.收入\支出\n");
+    printf("3.经办人\n");
+    printf("4.原因\n");
+    printf("5.金额\n");
+    scanf("%d",&n);
+    getchar();
+    switch(n) {
+    case 1:
+        printf("请输入ID:\n");
+        scanf("%d",&buf);
+        Find1(i,&s[0],buf);
+        break;
+    case 2:
+        printf("请输入种类\n0.收入     1.支出\n");
+        scanf("%d",&buf);
+        Find2(i,&s[0],buf);
+        break;
+    case 5:
+        printf("请输入金额:\n");
+        scanf("%d",&buf);
+        Find5(i,&s[0],buf);
+        break;
+    case 3:
+        printf("请输入经手人:\n");
+        scanf("%s",Buf);
+        Find3(i,&s[0],Buf);
+        break;
+    case 4:
+        printf("请输入原因:\n");
+        scanf("%s",Buf);
+        Find4(i,&s[0],Buf);
+        break;
+    default:
+        printf("输入有误\n");
+    }
+    printf("3S后返回上一页\n");
+    Sleep(3000);
+    return;
+}
+void Find1(int n,Class* s,int x) { ///S为存储数据的结构体数组,n为数据总量,x为要查找的ID,下面同理
+    int i;
+    for(i=0; i<n; i++) {
+        if(x == s[i].id)
+            Print(s[i]);
+    }
+    printf("输出完毕\n");
+}
+void Find2(int n,Class* s,int x) {
+    int i;
+    for(i=0; i<n; i++) {
+        if(x == s[i].kind)
+            Print(s[i]);
+    }
+    printf("输出完毕\n");
+}
+
+void Find3(int n,Class* s,char a[]) {
+    int i;
+    for(i=0; i<n; i++)
+        if(strcmp(s[i].person,a) == 0)
+            Print(s[i]);
+    printf("输出完毕\n");
+}
+
+void Find4(int n,Class* s,char a[]) {
+    int i;
+    for(i=0; i<n; i++)
+        if(strcmp(s[i].result,a) == 0)
+            Print(s[i]);
+    printf("输出完毕\n");
+}
+void Find5(int n,Class* s,int x) {
+    int i;
+    for(i=0; i<n; i++) {
+        if(x == s[i].amount)
+            Print(s[i]);
+    }
+    printf("输出完毕\n");
+}
+
